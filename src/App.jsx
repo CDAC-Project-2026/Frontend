@@ -12,9 +12,9 @@ import TakeTest from './pages/student/TakeTest';
 import TestsList from './pages/student/TestsList';
 import Results from './pages/student/Results';
 import TestAnalysis from './pages/student/TestAnalysis';
-// import Chatbot from './pages/student/Chatbot';
-// import Profile from './pages/student/Profile';
-// import MoreCourses from './pages/student/MoreCourses';
+import Chatbot from './pages/student/Chatbot';
+import Profile from './pages/student/Profile';
+import MoreCourses from './pages/student/MoreCourses';
 // import AdminLayout from './layouts/AdminLayout';
 // import AdminDashboard from './pages/admin/AdminDashboard';
 // import ManageUsers from './pages/admin/ManageUsers';
@@ -45,9 +45,9 @@ function App() {
           <Route path="tests" element={<TestsList />} />
           <Route path="results" element={<Results />} />
           <Route path="analysis/:studentTestId" element={<TestAnalysis />} />
-          {/* <Route path="chatbot" element={<Chatbot />} />
+          <Route path="chatbot" element={<Chatbot />} />
           <Route path="profile" element={<Profile />} />
-          <Route path="more-courses" element={<MoreCourses />} />  */}
+          <Route path="more-courses" element={<MoreCourses />} /> 
         </Route>
 
         {/* <Route path="/admin" element={<AdminLayout />}>
