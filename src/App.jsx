@@ -15,13 +15,14 @@ import TestAnalysis from './pages/student/TestAnalysis';
 import Chatbot from './pages/student/Chatbot';
 import Profile from './pages/student/Profile';
 import MoreCourses from './pages/student/MoreCourses';
-// import AdminLayout from './layouts/AdminLayout';
-// import AdminDashboard from './pages/admin/AdminDashboard';
-// import ManageUsers from './pages/admin/ManageUsers';
-// import ManageCourses from './pages/admin/ManageCourses';
-// import ViewResults from './pages/admin/ViewResults';
-// // import AdminProfile from './pages/admin/AdminProfile';
-// import CourseDetail from './pages/admin/CourseDetail';
+import AdminLayout from './layouts/AdminLayout';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import ManageUsers from './pages/admin/ManageUsers';
+import ManageCourses from './pages/admin/ManageCourses';
+import ViewResults from './pages/admin/ViewResults';
+import AdminProfile from './pages/admin/AdminProfile';
+import CourseDetail from './pages/admin/CourseDetail';
+import TestEditor from './pages/admin/TestEditor';
 
 function App() {
   return (
@@ -50,16 +51,27 @@ function App() {
           <Route path="more-courses" element={<MoreCourses />} /> 
         </Route>
 
-        {/* <Route path="/admin" element={<AdminLayout />}>
+        <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="users" element={<ManageUsers />} />
           <Route path="courses" element={<ManageCourses />} />
           <Route path="courses/new" element={<CourseDetail isNew={true} />} />
           <Route path="courses/:courseId" element={<CourseDetail />} />
           <Route path="courses/:courseId/edit" element={<CourseDetail isEdit={true} />} />
+
+          <Route
+            path="courses/:courseId/tests/new"
+            element={<TestEditor />}
+          />
+
+          <Route
+            path="courses/:courseId/tests/:testId"
+            element={<TestEditor />}
+          />
+
           <Route path="results" element={<ViewResults />} />
           <Route path="profile" element={<AdminProfile />} />
-        </Route> */}
+        </Route>    
       </Routes>
     </Router>
   );
