@@ -1,6 +1,6 @@
 // src/pages/admin/CourseDetail.jsx
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { 
   DocumentIcon, 
   PresentationChartBarIcon, 
@@ -44,26 +44,21 @@ const fetchCourse = (id) => ({
 const CourseDetail = ({ isNew, isEdit }) => {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [course, setCourse] = useState(null);
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: '',
-    instructor: '',
-    coverImage: ''
-  });
+  title: '',
+  description: ''
+});
 
   useEffect(() => {
     if (!isNew && courseId) {
       const data = fetchCourse(courseId);
       setCourse(data);
       setFormData({
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        instructor: data.instructor,
-        coverImage: data.coverImage
-      });
+      title: data.title,
+      description: data.description,
+    });
     } else if (isNew) {
       setCourse({ 
         materials: [], 
@@ -144,14 +139,10 @@ const CourseDetail = ({ isNew, isEdit }) => {
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Section 1: Course Information with Cover Image */}
       <section className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="relative h-48 bg-gray-200">
-          {formData.coverImage ? (
-            <img src={formData.coverImage} alt="Course cover" className="w-full h-full object-cover" />
-          ) : (
-            <div className="flex items-center justify-center h-full bg-gray-100">
-              <PhotoIcon className="h-12 w-12 text-gray-400" />
-            </div>
-          )}
+        <div className="relative h-48 bg-gradient-to-r from-blue-600 to-indigo-700 flex items-center justify-center">
+          <h1 className="text-4xl font-bold text-white">
+            {formData.title || "Course"}
+          </h1>
         </div>
         <div className="p-6">
           <h2 className="text-2xl font-bold mb-4">Course Information</h2>
@@ -166,37 +157,9 @@ const CourseDetail = ({ isNew, isEdit }) => {
                 className="mt-1 block w-full border rounded-md p-2"
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Category</label>
-              <input
-                type="text"
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                className="mt-1 block w-full border rounded-md p-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Instructor</label>
-              <input
-                type="text"
-                name="instructor"
-                value={formData.instructor}
-                onChange={handleChange}
-                className="mt-1 block w-full border rounded-md p-2"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Cover Image URL</label>
-              <input
-                type="text"
-                name="coverImage"
-                value={formData.coverImage}
-                onChange={handleChange}
-                placeholder="https://images.unsplash.com/..."
-                className="mt-1 block w-full border rounded-md p-2"
-              />
-            </div>
+            
+            
+            
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700">Description</label>
               <textarea

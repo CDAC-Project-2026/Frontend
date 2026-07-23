@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 
 export default function TestEditor() {
   const [test, setTest] = useState({
@@ -22,9 +22,42 @@ export default function TestEditor() {
     },
   ]);
 
-  const { testId } = useParams();
+const { courseId, testId } = useParams();
+const navigate = useNavigate();
 
     const isEdit = !!testId;
+    useEffect(() => {
+  if (isEdit) {
+    setTest({
+      title: "Java Basics Test",
+      duration: 30,
+      maxMarks: 20,
+      passingMarks: 10,
+      attempts: 1,
+    });
+
+    setQuestions([
+      {
+        id: 1,
+        question: "What is JVM?",
+        optionA: "Java Virtual Machine",
+        optionB: "Java Variable Method",
+        optionC: "Java Visual Model",
+        optionD: "None of the above",
+        correctAnswer: "A",
+      },
+      {
+        id: 2,
+        question: "Which keyword is used for inheritance in Java?",
+        optionA: "extends",
+        optionB: "implements",
+        optionC: "inherits",
+        optionD: "super",
+        correctAnswer: "A",
+      },
+    ]);
+  }
+}, [isEdit]);
 
   const handleChange = (e) => {
     setTest({
@@ -67,12 +100,37 @@ export default function TestEditor() {
     setQuestions(questions.filter((q) => q.id !== id));
   };
 
-  const handleSave = () => {
-    console.log(test);
-    console.log(questions);
+  const handleSaveDraft = () => {
+  console.log(test);
+  console.log(questions);
 
-    alert("Test Saved Successfully (Mock)");
-  };
+  navigate(`/admin/courses/${courseId}`, {
+  state: {
+    newTest: {
+      id: Date.now(),
+      title: test.title || "Untitled Test",
+      questions: questions.length,
+      status: "Draft",
+    },
+  },
+});
+};
+
+const handlePublish = () => {
+  console.log(test);
+  console.log(questions);
+
+  navigate(`/admin/courses/${courseId}`, {
+  state: {
+    newTest: {
+      id: Date.now(),
+      title: test.title || "Untitled Test",
+      questions: questions.length,
+      status: "Published",
+    },
+  },
+});
+};
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -315,16 +373,23 @@ export default function TestEditor() {
 
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-4">
 
-        <button
-            onClick={handleSave}
-            className="bg-blue-600 text-white px-8 py-3 rounded-md hover:bg-blue-700"
-            >
-            {isEdit ? "Update Test" : "Save Test"}
-        </button>
+  <button
+    onClick={handleSaveDraft}
+    className="bg-gray-600 text-white px-8 py-3 rounded-md hover:bg-gray-700"
+  >
+    Save Draft
+  </button>
 
-      </div>
+  <button
+    onClick={handlePublish}
+    className="bg-green-600 text-white px-8 py-3 rounded-md hover:bg-green-700"
+  >
+    Publish
+  </button>
+
+</div>
 
     </div>
   );
