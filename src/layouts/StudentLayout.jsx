@@ -1,8 +1,11 @@
-import React from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
 const StudentLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [studentName, setStudentName] = useState('');
 
   const navItems = [
     { name: 'DASHBOARD', path: '/student/dashboard' },
@@ -14,8 +17,28 @@ const StudentLayout = () => {
     { name: 'PROFILE', path: '/student/profile' },
   ];
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.get('/student/profile');
+        setStudentName(response.data.data.name);
+      } catch (err) {
+        console.error('Failed to load profile:', err);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    navigate('/login');
+  };
+
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Sideebar */}
       <aside className="w-64 bg-white shadow-lg border-r border-gray-200 flex flex-col">
         <div className="p-6 border-b border-gray-100">
           <h2 className="text-xl font-bold text-blue-600">Student Portal</h2>
@@ -40,9 +63,22 @@ const StudentLayout = () => {
         </nav>
       </aside>
 
-      <main className="flex-1 overflow-y-auto p-8">
-        <Outlet /> 
-      </main>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="bg-white border-b border-gray-200 px-8 py-4 flex justify-end items-center">
+          <button
+            onClick={handleLogout}
+            className="text-sm text-gray-500 hover:text-red-600 font-medium"
+          >
+            Logout
+          </button>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-8">
+          <Outlet context={{ studentName }} />
+        </main>
+      </div>
     </div>
   );
 };

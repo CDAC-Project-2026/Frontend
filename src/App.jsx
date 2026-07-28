@@ -40,7 +40,7 @@ function App() {
         <Route path="/student" element={<StudentLayout />}>
           <Route path="dashboard" element={<StudentDashboard />} />
           <Route path="my-courses" element={<MyCourses />} />
-          
+          <Route path="more-courses" element={<MoreCourses />} />
           <Route path="courses/:courseId" element={<CourseDetails />} /> 
           
           <Route path="tests" element={<TestsList />} />
