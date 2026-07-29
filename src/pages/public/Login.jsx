@@ -17,8 +17,8 @@ const Login = ()=>{
           const response = await api.post('/student/login', {email,password});
           const {token} = response.data.data;
 
-          localStorage.setItem('token',token);
-          localStorage.setItem('role','student');
+          sessionStorage.setItem('token',token);
+          sessionStorage.setItem('role','student');
 
           navigate('/student/dashboard')
         }catch(err){

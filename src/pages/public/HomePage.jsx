@@ -86,7 +86,7 @@ const HomePage = () => {
       
       <footer className="border-t border-gray-100 bg-white py-8 text-center">
         <p className="text-sm text-gray-400 font-medium">
-          © {new Date().getFullYear()} ExamPortal. All rights reserved.
+          © {new Date().getFullYear()} ExamPortal.
         </p>
       </footer>
     </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShieldCheckIcon } from '@heroicons/react/24/solid';
-import api from '../../services/api'; // <-- Make sure this path is correct
+import api from '../../services/api';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -19,18 +19,19 @@ const AdminLogin = () => {
         password,
       });
 
-      // Store the token (and optionally user data) in localStorage
+      // Store the token in localStorage
       const { token, message } = response.data.data;
       localStorage.setItem('token', token);
-
-      // Optional: store user info if needed
-      // localStorage.setItem('user', JSON.stringify(response.data.data.user));
 
       alert(message || 'Login successful!');
       navigate('/admin/dashboard');
     } catch (error) {
       console.error('Login error:', error);
-      const errorMsg = error.response?.data?.data || 'Login failed. Please try again.';
+      // check message first, then data
+      const errorMsg =
+        error.response?.data?.message ||
+        error.response?.data?.data ||
+        'Login failed. Please try again.';
       alert(errorMsg);
     } finally {
       setLoading(false);
