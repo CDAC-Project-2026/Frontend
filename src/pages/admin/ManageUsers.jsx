@@ -1,5 +1,6 @@
 // src/pages/admin/ManageUsers.jsx
-import { useState } from 'react';
+import { useState, useEffect } from "react";
+import api from "../../services/api";
 import { 
   UserPlusIcon, 
   PencilIcon, 
@@ -9,86 +10,157 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function ManageUsers() {
-  const [users, setUsers] = useState([
-    { 
-      id: 1, 
-      name: 'Deven', 
-      email: 'devn@example.com', 
-      role: 'student',
-      avatar: 'https://ui-avatars.com/api/?name=John+Doe&background=3b82f6&color=fff&bold=true'
-    },
-    { 
-      id: 2, 
-      name: 'Siddhi', 
-      email: 'sid@example.com', 
-      role: 'student',
-      avatar: 'https://ui-avatars.com/api/?name=Jane+Smith&background=10b981&color=fff&bold=true'
-    },
-    { 
-      id: 3, 
-      name: 'Sanchit', 
-      email: 'admin@example.com', 
-      role: 'admin',
-      avatar: 'https://ui-avatars.com/api/?name=Admin+User&background=8b5cf6&color=fff&bold=true'
-    },
-  ]);
-
+  const [users, setUsers] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', role: 'student' });
+  const [filterRole, setFilterRole] = useState("ALL");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (editingUser) {
-      // Update existing user
-      setUsers(users.map(u => 
-        u.id === editingUser.id 
-          ? { ...u, ...formData, avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=3b82f6&color=fff&bold=true` }
-          : u
-      ));
-    } else {
-      // Add new user
-      const newUser = {
-        id: Date.now(),
-        ...formData,
-        avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}&background=3b82f6&color=fff&bold=true`
-      };
-      setUsers([...users, newUser]);
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    city: "",
+    role: "STUDENT"
+  });
+
+  const fetchUsers = async () => {
+    try {
+      const response = await api.get("/admin/users");
+      setUsers(response.data.data);
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || error.response?.data?.data || "Failed to fetch users");
     }
-    setShowForm(false);
-    setEditingUser(null);
-    setFormData({ name: '', email: '', role: 'student' });
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const validateForm = () => {
+    if (!formData.name.trim()) {
+      alert("Name is required");
+      return false;
+    }
+    if (!formData.phone.trim()) {
+      alert("Phone is required");
+      return false;
+    }
+    if (formData.role === "STUDENT" && !formData.city.trim()) {
+      alert("City is required for students");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        city: formData.role === "STUDENT" ? formData.city : null,
+        role: formData.role.toUpperCase()
+      };
+
+      if (editingUser) {
+        const response = await api.put("/admin/users", payload);
+        alert(response.data.data || "User updated successfully");
+      } else {
+        const response = await api.post("/admin/users", payload);
+        alert(response.data.data || "User created successfully");
+      }
+      await fetchUsers();
+      setShowForm(false);
+      setEditingUser(null);
+      setFormData({ name: "", email: "", phone: "", city: "", role: "STUDENT" });
+    } catch (error) {
+      console.error(error);
+      alert(
+        error.response?.data?.message ||
+        error.response?.data?.data ||
+        "Operation failed"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEdit = (user) => {
     setEditingUser(user);
-    setFormData({ name: user.name, email: user.email, role: user.role });
+    setFormData({
+      name: user.name,
+      email: user.email,
+      phone: user.phone || "",
+      city: user.city || "",
+      role: user.role
+    });
     setShowForm(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Delete this user?')) {
-      setUsers(users.filter(u => u.id !== id));
+  const handleDelete = async (email) => {
+    if (!window.confirm('Delete this user?')) return;
+    try {
+      const response = await api.delete(`/admin/users/${email}`);
+      alert(response.data.data || "User deleted");
+      await fetchUsers();
+    } catch (error) {
+      console.error(error);
+      alert(
+        error.response?.data?.message ||
+        error.response?.data?.data ||
+        "Delete failed"
+      );
     }
   };
 
   const handleCancel = () => {
     setShowForm(false);
     setEditingUser(null);
-    setFormData({ name: '', email: '', role: 'student' });
+    setFormData({ name: "", email: "", phone: "", city: "", role: "STUDENT" });
   };
+
+  const filteredUsers = filterRole === "ALL"
+    ? users
+    : users.filter(user => user.role === filterRole);
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <h1 className="text-2xl font-bold">Manage Users</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-blue-700"
-        >
-          <UserPlusIcon className="h-5 w-5" />
-          Add User
-        </button>
+        <div className="flex gap-2">
+          <select
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="ALL">All Users</option>
+            <option value="STUDENT">Students</option>
+            <option value="ADMIN">Admins</option>
+          </select>
+          <button
+            onClick={() => {
+              setEditingUser(null);
+              setFormData({
+                name: "",
+                email: "",
+                phone: "",
+                city: "",
+                role: "STUDENT"
+              });
+              setShowForm(true);
+            }}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-blue-700"
+          >
+            <UserPlusIcon className="h-5 w-5" />
+            Add User
+          </button>
+        </div>
       </div>
 
       {/* Add/Edit User Form */}
@@ -115,23 +187,55 @@ export default function ManageUsers() {
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={editingUser}
               required
             />
+            <input
+              type="tel"
+              placeholder="Phone Number"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            {formData.role === "STUDENT" && (
+              <input
+                type="text"
+                placeholder="City"
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            )}
             <select
               value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              className="w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={!!editingUser}
+              onChange={(e) => {
+                const newRole = e.target.value;
+                setFormData({ 
+                  ...formData, 
+                  role: newRole,
+                  city: newRole === "STUDENT" ? formData.city : ""
+                });
+              }}
+              className={`w-full border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                editingUser ? "bg-gray-100 cursor-not-allowed" : ""
+              }`}
             >
-              <option value="student">Student</option>
-              <option value="admin">Admin</option>
+              <option value="STUDENT">Student</option>
+              <option value="ADMIN">Admin</option>
             </select>
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-green-700"
+                disabled={loading}
+                className={`bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-green-700 ${
+                  loading ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 <CheckIcon className="h-4 w-4" />
-                {editingUser ? 'Update' : 'Create'}
+                {loading ? "Saving..." : (editingUser ? 'Update' : 'Create')}
               </button>
               <button
                 type="button"
@@ -145,8 +249,8 @@ export default function ManageUsers() {
         </div>
       )}
 
-      {/* Users Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Users Table – Phone & City columns removed */}
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
         <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr>
@@ -158,16 +262,20 @@ export default function ManageUsers() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
+            {filteredUsers.map((user) => (
+              <tr key={user.email} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <img src={user.avatar} alt={user.name} className="h-10 w-10 rounded-full object-cover" />
+                  <img 
+                    src={`https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=fff&bold=true`} 
+                    alt={user.name} 
+                    className="h-10 w-10 rounded-full object-cover" 
+                  />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap font-medium">{user.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 text-xs rounded-full ${
-                    user.role === 'admin' 
+                    user.role === 'ADMIN' 
                       ? 'bg-purple-100 text-purple-800' 
                       : 'bg-green-100 text-green-800'
                   }`}>
@@ -182,7 +290,7 @@ export default function ManageUsers() {
                     <PencilIcon className="h-5 w-5" />
                   </button>
                   <button
-                    onClick={() => handleDelete(user.id)}
+                    onClick={() => handleDelete(user.email)}
                     className="text-red-600 hover:text-red-800"
                   >
                     <TrashIcon className="h-5 w-5" />

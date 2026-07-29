@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import api from "../../services/api";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -19,11 +20,27 @@ const Signup = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Registering student:', formData);
-    navigate('/student/dashboard');
-  };
+
+    try {
+        const response = await api.post("/student/register", formData);
+
+        alert(response.data.message || "Registration Successful!");
+
+        // Go to login page after successful registration
+        navigate("/login");
+
+    } catch (error) {
+        console.error(error);
+
+        if (error.response) {
+            alert(error.response.data.message || "Registration Failed!");
+        } else {
+            alert("Unable to connect to server.");
+        }
+    }
+};
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
