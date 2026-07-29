@@ -1,38 +1,43 @@
 // src/pages/admin/ManageCourses.jsx
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import api from '../../services/api';
 
 export default function ManageCourses() {
-  const [courses, setCourses] = useState([
-    { 
-      id: 1, 
-      title: 'React for Beginners', 
-      category: 'Frontend', 
-      instructor: 'Rohan',
-      thumbnail: 'https://images.unsplash.com/photo-1633356122102-3fe601e05bd2?w=80&h=80&fit=crop'
-    },
-    { 
-      id: 2, 
-      title: 'Advanced Node.js', 
-      category: 'Backend', 
-      instructor: 'Nilesh',
-      thumbnail: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=80&h=80&fit=crop'
-    },
-    { 
-      id: 3, 
-      title: 'UI/UX Design', 
-      category: 'Design', 
-      instructor: 'Ketan',
-      thumbnail: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=80&h=80&fit=crop'
-    },
-  ]);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleDelete = (id) => {
-    if (window.confirm('Delete this course?')) {
-      setCourses(courses.filter(c => c.id !== id));
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await api.get('/admin/courses');
+        setCourses(response.data.data);
+      } catch (err) {
+        setError('Could not load courses.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
+
+  const handleDelete = async (courseId) => {
+    if (!window.confirm('Delete this course?')) return;
+
+    try {
+      await api.delete(`/admin/courses/${courseId}`);
+      setCourses(courses.filter((c) => c.courseId !== courseId));
+    } catch (err) {
+      alert('Could not delete this course. Please try again.');
     }
   };
+
+  if (loading) {
+    return <p className="text-gray-500">Loading courses...</p>;
+  }
 
   return (
     <div>
@@ -47,57 +52,65 @@ export default function ManageCourses() {
         </Link>
       </div>
 
+      {error && (
+        <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Thumbnail</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Instructor</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created By</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
               <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {courses.map((course) => (
-              <tr key={course.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <img
-                    src={course.thumbnail}
-                    alt={course.title}
-                    className="h-12 w-12 rounded-md object-cover"
-                  />
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <Link
-                    to={`/admin/courses/${course.id}`}
-                    className="text-blue-600 hover:underline font-medium"
-                  >
-                    {course.title}
-                  </Link>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800">
-                    {course.category}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">{course.instructor}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
-                  <Link
-                    to={`/admin/courses/${course.id}/edit`}
-                    className="text-blue-600 hover:text-blue-800 inline-block"
-                  >
-                    <PencilIcon className="h-5 w-5" />
-                  </Link>
-                  <button
-                    onClick={() => handleDelete(course.id)}
-                    className="text-red-600 hover:text-red-800 inline-block"
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
+            {courses.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                  No courses yet. Create your first one.
                 </td>
               </tr>
-            ))}
+            ) : (
+              courses.map((course) => (
+                <tr key={course.courseId} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <Link
+                      to={`/admin/courses/${course.courseId}`}
+                      className="text-blue-600 hover:underline font-medium"
+                    >
+                      {course.courseName}
+                    </Link>
+                  </td>
+                  <td className="px-6 py-4 max-w-xs truncate text-gray-600">
+                    {course.description}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">{course.adminName}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-500">
+                    {new Date(course.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right space-x-2">
+                    <Link
+                      to={`/admin/courses/${course.courseId}/edit`}
+                      className="text-blue-600 hover:text-blue-800 inline-block"
+                    >
+                      <PencilIcon className="h-5 w-5" />
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(course.courseId)}
+                      className="text-red-600 hover:text-red-800 inline-block"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

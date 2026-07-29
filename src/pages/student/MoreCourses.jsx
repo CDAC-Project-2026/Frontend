@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../services/api';
 
 const MoreCourses = () => {
   const [courses, setCourses] = useState([]);
@@ -10,8 +11,7 @@ const MoreCourses = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Two calls: the full catalog, and what the student's
-        // already enrolled in, so we know which buttons to disable.
+        //one call will return all the courses available/created by admin, and other call will return the courses the student is already enrolled in.
         const [coursesRes, myCoursesRes] = await Promise.all([
           api.get('/student/courses'),
           api.get('/student/my-courses'),
@@ -38,7 +38,7 @@ const MoreCourses = () => {
       setEnrolledIds((prev) => new Set(prev).add(courseId));
     } catch (err) {
       if (err.response?.status === 409) {
-        // Already enrolled (e.g. double-click) - just reflect that state.
+        //if already enrolled- just reflect that state.
         setEnrolledIds((prev) => new Set(prev).add(courseId));
       } else {
         setError('Could not enroll right now. Please try again.');
