@@ -6,16 +6,18 @@ import {
   ArrowTrendingUpIcon
 } from '@heroicons/react/24/outline';
 import { StarIcon } from '@heroicons/react/24/solid';
+import { useOutletContext } from 'react-router-dom';
 
 const StudentDashboard = () => {
+  const {studentName} = useOutletContext();
   return (
     <div className="max-w-7xl mx-auto pb-10">
       
       {/* Personalized Header */}
       <div className="mb-8 bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center bg-gradient-to-r from-white to-blue-50">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, Eshita! 👋
+           <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome back, {studentName || 'Student'}! 👋
           </h1>
           <p className="text-gray-500 font-medium">
             Here is a snapshot of your learning progress today. Keep up the great work!

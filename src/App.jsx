@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/public/HomePage';
 import BrowseCourses from './pages/public/BrowseCourses';
+import PublicCourseDetails from './pages/public/PublicCourseDetails';
 import Login from './pages/public/Login';
 import AdminLogin from './pages/public/AdminLogin';
 import Signup from './pages/public/Signup';
@@ -33,6 +34,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/courses" element={<BrowseCourses />} />
+        <Route path="/courses/:courseId" element={<PublicCourseDetails />} />
         <Route path="/admin-login" element={<AdminLogin />} />
 
         <Route path="/student/test/:testId" element={<TakeTest />} />
@@ -40,7 +42,7 @@ function App() {
         <Route path="/student" element={<StudentLayout />}>
           <Route path="dashboard" element={<StudentDashboard />} />
           <Route path="my-courses" element={<MyCourses />} />
-          
+          <Route path="more-courses" element={<MoreCourses />} />
           <Route path="courses/:courseId" element={<CourseDetails />} /> 
           
           <Route path="tests" element={<TestsList />} />

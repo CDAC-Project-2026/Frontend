@@ -1,64 +1,161 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserCircleIcon, ShieldExclamationIcon } from '@heroicons/react/24/outline';
+import api from "../../services/api"; 
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
+  const [loading, setLoading] = useState(true); 
+
+  const navigate = useNavigate();
+
   const [profile, setProfile] = useState({
-    student_name: "Eshita Chaskar",
-    email: "eshita@example.com",
-    phone: "+91 9876543210",
-    city: "Pune",
-    grade: "A+",
-    rank: "1"
+    name: "",
+    email: "",
+    phone: "",
+    city: "",
+    rank: ""
+  });
+  const [editFields, setEditFields] = useState({});
+
+  const [passwords, setPasswords] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmNew: ""
   });
 
-  const [editFields, setEditFields] = useState({ ...profile });
-  const [passwords, setPasswords] = useState({ currentPassword: "", newPassword: "", confirmNew: "" });
   const [deleteConfirmationPassword, setDeleteConfirmationPassword] = useState("");
 
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isDeletingProfile, setIsDeletingProfile] = useState(false);
 
-  const handleSaveProfile = (e) => {
-    e.preventDefault();
-    setProfile({ ...editFields });
-    setIsEditing(false);
-    alert("Profile info successfully saved!");
-  };
-
-  const handleChangePasswordSubmit = (e) => {
-    e.preventDefault();
-    if (passwords.newPassword !== passwords.confirmNew) {
-      alert("New passwords do not match!");
-      return;
+  // ✅ Step 2: loadProfile with api
+  const loadProfile = async () => {
+    try {
+      const response = await api.get("/student/profile");
+      setProfile(response.data.data);
+      setEditFields(response.data.data);
+    } catch (error) {
+      console.error(error);
+      alert("Failed to load profile.");
+    } finally {
+      setLoading(false);
     }
-    alert("Password updated successfully!");
-    setPasswords({ currentPassword: "", newPassword: "", confirmNew: "" });
-    setIsChangingPassword(false);
   };
 
-  const handleDeleteAccountSubmit = (e) => {
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  // loading UI
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <p className="text-lg text-gray-600">Loading Profile...</p>
+      </div>
+    );
+  }
+
+  // ✅ Step 3: handleSaveProfile with api.put
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
-    if (!deleteConfirmationPassword) return;
-    alert(`Account drop authorized for database verification. Password checked: ${deleteConfirmationPassword}`);
+
+    try {
+      await api.put("/student/profile", {
+        name: editFields.name,
+        phone: editFields.phone,
+        city: editFields.city
+      });
+
+      setProfile({ ...editFields });
+      setIsEditing(false);
+
+      alert("Profile updated successfully!");
+    } catch (error) {
+      console.error(error);
+      alert("Failed to update profile.");
+    }
   };
+
+  const handleChangePasswordSubmit = async (e) => {
+  e.preventDefault();
+
+  // Validate that new password and confirm match
+  if (passwords.newPassword !== passwords.confirmNew) {
+    alert("New passwords do not match!");
+    return;
+  }
+
+  try {
+    const response = await api.put("/student/change-password", {
+      currentPassword: passwords.currentPassword,
+      newPassword: passwords.newPassword,
+      confirmNew: passwords.confirmNew
+    });
+
+    alert(response.data?.data || "Password updated successfully!");
+
+    // Clear form and exit edit mode
+    setPasswords({
+      currentPassword: "",
+      newPassword: "",
+      confirmNew: ""
+    });
+    setIsChangingPassword(false);
+  } catch (error) {
+    console.error(error);
+    alert(error.response?.data?.data || "Failed to update password.");
+  }
+};
+
+  const handleDeleteAccountSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!deleteConfirmationPassword.trim()) {
+        alert("Please enter your password.");
+        return;
+    }
+
+    try {
+        const response = await api.delete("/student/account", {
+            data: {
+                password: deleteConfirmationPassword
+            }
+        });
+
+        alert(response.data.data);
+
+        localStorage.removeItem("token");
+
+        navigate("/login");
+
+    } catch (error) {
+        console.error(error);
+
+        if (error.response) {
+            alert(error.response.data.message || "Failed to delete account.");
+        } else {
+            alert("Server not reachable.");
+        }
+    }
+};
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-10">
       
-      
+      {/* Header Card */}
       <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] flex flex-col sm:flex-row items-center justify-between gap-6 relative overflow-hidden">
-        
         <div className="absolute -right-10 -top-10 w-32 h-32 bg-blue-50 rounded-full blur-2xl opacity-60"></div>
-        
         <div className="flex items-center gap-5 relative z-10">
           <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
             <UserCircleIcon className="w-10 h-10" />
           </div>
           <div>
-            <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">{profile.student_name}</h2>
+            <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+              {profile.name || "User"}
+            </h2>
             <p className="text-sm font-medium text-blue-600 mt-1">
-              Class Rank: #{profile.rank} <span className="text-gray-300 mx-2">|</span> Grade Status: {profile.grade}
+              Class Rank: #{profile.rank || "-"} <span className="text-gray-300 mx-2">|</span> Grade Status: {profile.grade || "-"}
             </p>
           </div>
         </div>
@@ -78,7 +175,7 @@ const Profile = () => {
         </div>
       </div>
 
-      
+      {/* Profile Info / Edit Form */}
       {!isChangingPassword && !isDeletingProfile && (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="border-b border-gray-100 bg-gray-50/50 px-8 py-5">
@@ -90,11 +187,17 @@ const Profile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Full Name</label>
-                  <input type="text" value={editFields.student_name} onChange={(e) => setEditFields({...editFields, student_name: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 transition-all" required />
+                  <input type="text" value={editFields.name} onChange={(e) => setEditFields({...editFields, name: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 transition-all" required />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Email ID</label>
-                  <input type="email" value={editFields.email} onChange={(e) => setEditFields({...editFields, email: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 transition-all" required />
+                  {/* ✅ Step 4: email is read-only */}
+                  <input
+                    type="email"
+                    value={editFields.email}
+                    readOnly
+                    className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl cursor-not-allowed"
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Phone</label>
@@ -115,26 +218,26 @@ const Profile = () => {
             <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-12">
               <div>
                 <span className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Full Name</span>
-                <span className="text-gray-900 font-semibold text-lg">{profile.student_name}</span>
+                <span className="text-gray-900 font-semibold text-lg">{profile.name || "-"}</span>
               </div>
               <div>
                 <span className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Registered Email</span>
-                <span className="text-gray-900 font-semibold text-lg">{profile.email}</span>
+                <span className="text-gray-900 font-semibold text-lg">{profile.email || "-"}</span>
               </div>
               <div>
                 <span className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Phone Reference</span>
-                <span className="text-gray-900 font-semibold text-lg">{profile.phone}</span>
+                <span className="text-gray-900 font-semibold text-lg">{profile.phone || "-"}</span>
               </div>
               <div>
                 <span className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">City Metro</span>
-                <span className="text-gray-900 font-semibold text-lg">{profile.city}</span>
+                <span className="text-gray-900 font-semibold text-lg">{profile.city || "-"}</span>
               </div>
             </div>
           )}
         </div>
       )}
 
-      
+      {/* Change Password Form (mock) */}
       {isChangingPassword && (
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 max-w-2xl">
           <h3 className="text-xl font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Modify Security Key</h3>
@@ -159,7 +262,7 @@ const Profile = () => {
         </div>
       )}
       
-      
+      {/* Danger Zone (mock) */}
       <div className="bg-red-50/50 border border-red-100 rounded-3xl p-8 mt-12 relative overflow-hidden">
         <div className="flex items-center gap-3 mb-2">
           <ShieldExclamationIcon className="w-6 h-6 text-red-600" />
