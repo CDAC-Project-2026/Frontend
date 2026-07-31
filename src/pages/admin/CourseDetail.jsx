@@ -20,7 +20,7 @@ const CourseDetail = ({ isNew, isEdit }) => {
   const [formData, setFormData] = useState({ courseName: '', description: '' });
   const [enrolledStudents, setEnrolledStudents] = useState([]);
   const [materials, setMaterials] = useState([]); //backend left
-  const [tests, setTests] = useState([]); //backend left
+  const [tests, setTests] = useState([]); //backend left 
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
