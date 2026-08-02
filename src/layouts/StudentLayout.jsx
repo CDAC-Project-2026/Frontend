@@ -6,6 +6,9 @@ const StudentLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [studentName, setStudentName] = useState('');
+  // NOTE: adjust "studentId" below to match whatever field name your
+  // /student/profile response actually uses for the student's ID.
+  const [studentId, setStudentId] = useState(null);
 
   const navItems = [
     { name: 'DASHBOARD', path: '/student/dashboard' },
@@ -22,6 +25,7 @@ const StudentLayout = () => {
       try {
         const response = await api.get('/student/profile');
         setStudentName(response.data.data.name);
+        setStudentId(response.data.data.studentId); // <-- verify this field name matches your backend
       } catch (err) {
         console.error('Failed to load profile:', err);
       }
@@ -76,7 +80,7 @@ const StudentLayout = () => {
         </header>
 
         <main className="flex-1 overflow-y-auto p-8">
-          <Outlet context={{ studentName }} />
+          <Outlet context={{ studentName, studentId }} />
         </main>
       </div>
     </div>

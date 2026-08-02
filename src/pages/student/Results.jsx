@@ -1,38 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import api from '../../services/api';
 
 const Results = () => {
   const [resultsData, setResultsData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Simulating fetching data by joining StudentTest, Test, and Courses tables
-    setTimeout(() => {
-      setResultsData([
-        {
-          student_test_id: 1,
-          test_id: 101,
-          title: 'C++ Programming Concepts',
-          date: '05-Apr-2026, Sun',
-          student_score: 85,
-          total_score: 100,
-          passing_percentage: 40
-        },
-        {
-          student_test_id: 3,
-          test_id: 102,
-          title: 'Java Master Class',
-          date: '12-Apr-2026, Sun',
-          student_score: 95,
-          total_score: 100,
-          passing_percentage: 40
-        },
-      ]);
-      setIsLoading(false);
-    }, 400);
+    api
+      .get('/student/result')
+      .then((response) => {
+        setResultsData(response.data.data); // List<AttemptedTestDTO>
+      })
+      .catch((err) => {
+        setError(err.response?.data?.status ?? 'Could not load results.');
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   if (isLoading) return <div className="text-center py-10">Loading results...</div>;
+  if (error) return <div className="text-center py-10 text-red-600">{error}</div>;
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -42,48 +30,47 @@ const Results = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200 text-sm font-bold text-gray-700">
-              <th className="py-4 px-6">#</th>
-              <th className="py-4 px-6">Title</th>
-              <th className="py-4 px-6">Date</th>
-              <th className="py-4 px-6">Percentage</th>
-              <th className="py-4 px-6">Passing Score</th>
-              <th className="py-4 px-6">Result</th>
-              <th className="py-4 px-6 text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {resultsData.map((result, index) => {
-              const percentage = (result.student_score / result.total_score) * 100;
-              const isPass = percentage >= result.passing_percentage;
+        {resultsData.length === 0 ? (
+          <p className="text-center py-10 text-gray-500">You haven't attempted any tests yet.</p>
+        ) : (
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200 text-sm font-bold text-gray-700">
+                <th className="py-4 px-6">#</th>
+                <th className="py-4 px-6">Title</th>
+                <th className="py-4 px-6">Date</th>
+                <th className="py-4 px-6">Percentage</th>
+                <th className="py-4 px-6 text-center">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {resultsData.map((result, index) => {
+                const percentage = Number(result.scorePercentage);
 
-              return (
-                <tr key={result.student_test_id} className="hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-6 text-sm text-gray-600">{index + 1}</td>
-                  <td className="py-4 px-6 text-sm font-medium text-gray-800">{result.title}</td>
-                  <td className="py-4 px-6 text-sm text-gray-600">{result.date}</td>
-                  <td className="py-4 px-6 text-sm text-gray-800 font-medium">{percentage.toFixed(2)} %</td>
-                  <td className="py-4 px-6 text-sm text-gray-600">{result.passing_percentage} %</td>
-                  <td className="py-4 px-6 text-sm font-medium">
-                    <span className={isPass ? 'text-teal-500' : 'text-red-500'}>
-                      {isPass ? 'Pass' : 'Fail'}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-center">
-                    <Link 
-                      to={`/student/analysis/${result.student_test_id}`}
-                      className="inline-block px-4 py-1.5 text-sm font-medium text-teal-600 border border-teal-500 rounded-full hover:bg-teal-50 transition-colors"
-                    >
-                      Analysis
-                    </Link>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                return (
+                  <tr key={result.testId} className="hover:bg-gray-50 transition-colors">
+                    <td className="py-4 px-6 text-sm text-gray-600">{index + 1}</td>
+                    <td className="py-4 px-6 text-sm font-medium text-gray-800">{result.testName}</td>
+                    <td className="py-4 px-6 text-sm text-gray-600">
+                      {new Date(result.attempDateTime).toLocaleDateString('en-GB', {
+                        day: '2-digit', month: 'short', year: 'numeric'
+                      })}
+                    </td>
+                    <td className="py-4 px-6 text-sm text-gray-800 font-medium">{percentage.toFixed(2)} %</td>
+                    <td className="py-4 px-6 text-center">
+                      <Link
+                        to={`/student/analysis/${result.testId}`}
+                        className="inline-block px-4 py-1.5 text-sm font-medium text-teal-600 border border-teal-500 rounded-full hover:bg-teal-50 transition-colors"
+                      >
+                        Analysis
+                      </Link>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
