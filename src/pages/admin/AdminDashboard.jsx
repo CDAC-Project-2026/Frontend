@@ -1,31 +1,50 @@
 // src/pages/admin/AdminDashboard.jsx
-import { 
-  UsersIcon, 
-  BookOpenIcon, 
-  ClipboardDocumentListIcon, 
+import { useState, useEffect } from 'react';
+import {
+  UsersIcon,
+  BookOpenIcon,
+  ClipboardDocumentListIcon,
   ChartBarIcon,
-  ClockIcon 
+  ClockIcon
 } from '@heroicons/react/24/outline';
+import api from '../../services/api';
 
 export default function AdminDashboard() {
-  const stats = [
-    { name: 'Total Users', value: 342, icon: UsersIcon, color: 'bg-blue-500' },
-    { name: 'Total Courses', value: 12, icon: BookOpenIcon, color: 'bg-green-500' },
-    { name: 'Total Tests', value: 28, icon: ClipboardDocumentListIcon, color: 'bg-purple-500' },
-    { name: 'Average Score', value: '74.5%', icon: ChartBarIcon, color: 'bg-orange-500' },
-  ];
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const recentActivities = [
-    { id: 1, action: "New user registered", time: "2 min ago" },
-    { id: 2, action: "Course 'React Basics' updated", time: "1 hour ago" },
-    { id: 3, action: "Test 'Midterm' results published", time: "3 hours ago" },
+  useEffect(() => {
+    api
+      .get('/admin/dashboard')
+      .then((response) => {
+        setDashboard(response.data.data); // AdminDashboardDTO
+      })
+      .catch((err) => {
+        setError(err.response?.data?.status ?? 'Could not load dashboard.');
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return <div className="text-center py-10 text-gray-500">Loading dashboard...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center py-10 text-red-600">{error}</div>;
+  }
+
+  const stats = [
+    { name: 'Total Users', value: dashboard.noOfStudents, icon: UsersIcon, color: 'bg-blue-500' },
+    { name: 'Total Courses', value: dashboard.noOfCourses, icon: BookOpenIcon, color: 'bg-green-500' },
+    { name: 'Total Tests', value: dashboard.noOfTests, icon: ClipboardDocumentListIcon, color: 'bg-purple-500' },
+    { name: 'Average Score', value: `${Number(dashboard.averageScore).toFixed(1)}%`, icon: ChartBarIcon, color: 'bg-orange-500' },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Banner Image (real Unsplash photo) */}
-      <img 
-        src="https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&h=200&fit=crop" 
+      <img
+        src="https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&h=200&fit=crop"
         alt="Admin workspace"
         className="w-full h-32 object-cover rounded-lg shadow-sm"
       />
@@ -47,20 +66,23 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Recent Activity with Clock Icon */}
+      {/* Recent Activity — real studentLogs from the backend */}
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex items-center gap-2 mb-3">
           <ClockIcon className="h-5 w-5 text-gray-500" />
           <h2 className="text-lg font-semibold">Recent Activity</h2>
         </div>
-        <ul className="divide-y">
-          {recentActivities.map(activity => (
-            <li key={activity.id} className="py-2 flex justify-between items-center">
-              <span>{activity.action}</span>
-              <span className="text-gray-400 text-sm">{activity.time}</span>
-            </li>
-          ))}
-        </ul>
+        {(!dashboard.studentLogs || dashboard.studentLogs.length === 0) ? (
+          <p className="text-gray-500 text-sm py-2">No recent activity yet.</p>
+        ) : (
+          <ul className="divide-y">
+            {dashboard.studentLogs.map((log, index) => (
+              <li key={index} className="py-2">
+                <span>{log}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );

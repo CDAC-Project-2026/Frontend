@@ -1,9 +1,16 @@
 // src/layouts/AdminLayout.jsx
 import React from 'react';
-import { Link, Outlet, useLocation } from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 const AdminLayout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    navigate('/admin-login');
+  };
 
   const navItems = [
     { name: 'DASHBOARD', path: '/admin/dashboard' },
@@ -38,9 +45,21 @@ const AdminLayout = () => {
           })}
         </nav>
       </aside>
-      <main className="flex-1 overflow-y-auto p-8">
-        <Outlet />
-      </main>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top bar */}
+        <header className="bg-white border-b border-gray-200 px-8 py-4 flex justify-end items-center">
+          <button
+            onClick={handleLogout}
+            className="text-sm text-gray-500 hover:text-red-600 font-medium"
+          >
+            Logout
+          </button>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-8">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 };
