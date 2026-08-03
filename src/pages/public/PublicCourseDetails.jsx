@@ -69,14 +69,14 @@ const PublicCourseDetails = () => {
               <div className="lg:col-span-2 space-y-6">
                 <h2 className="text-xl font-bold text-gray-800 border-b-2 border-blue-600 pb-2">Available Tests</h2>
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center text-gray-400 text-sm">
-                  Tests for this course haven't been added yet. Check back soon.
+                  You're not enrolled in this course yet
                 </div>
               </div>
 
               <div className="space-y-6">
                 <h2 className="text-xl font-bold text-gray-800 border-b-2 border-blue-600 pb-2">Study Materials</h2>
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center text-gray-400 text-sm">
-                  No materials uploaded yet.
+                  Enroll in this course to see its tests.
                 </div>
               </div>
 

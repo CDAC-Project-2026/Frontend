@@ -17,29 +17,31 @@ const CourseDetails = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [courseRes, myCoursesRes, materialsRes] = await Promise.all([
+        const [courseRes, myCoursesRes] = await Promise.all([
           api.get(`/student/courses/${courseId}`),
           api.get('/student/my-courses'),
-          api.get(`/student/courses/${courseId}/materials`),
         ]);
 
         setCourse(courseRes.data.data);
-        setMaterials(materialsRes.data.data);
-
 
         const matched = myCoursesRes.data.data.find(
           (c) => c.courseId === Number(courseId)
         );
         setEnrollment(matched || null);
 
-        // Only fetch unattempted tests if the student is actually enrolled —
-        // matches the pattern used for Study Materials/progress above.
         if (matched) {
           try {
             const testsRes = await api.get(`/student/courses/${courseId}/tests`);
             setTests(testsRes.data.data);
           } catch (testsErr) {
             console.error("Tests fetch failed:", testsErr.response?.status, testsErr.response?.data);
+          }
+
+          try {
+            const materialsRes = await api.get(`/student/courses/${courseId}/materials`);
+            setMaterials(materialsRes.data.data);
+          } catch (materialsErr) {
+            console.error("Materials fetch failed:", materialsErr.response?.status, materialsErr.response?.data);
           }
         }
       } catch (err) {
@@ -48,9 +50,8 @@ const CourseDetails = () => {
         setLoading(false);
       }
     };
-
     fetchData();
-  }, [courseId]);
+  }, [courseId]); 
 
   const handleEnroll = async () => {
     setEnrolling(true);
