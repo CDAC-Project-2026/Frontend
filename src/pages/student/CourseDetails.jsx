@@ -8,6 +8,7 @@ const CourseDetails = () => {
 
   const [course, setCourse] = useState(null);
   const [enrollment, setEnrollment] = useState(null); // null = not enrolled
+  const [tests, setTests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [enrolling, setEnrolling] = useState(false);
@@ -30,6 +31,17 @@ const CourseDetails = () => {
           (c) => c.courseId === Number(courseId)
         );
         setEnrollment(matched || null);
+
+        // Only fetch unattempted tests if the student is actually enrolled —
+        // matches the pattern used for Study Materials/progress above.
+        if (matched) {
+          try {
+            const testsRes = await api.get(`/student/courses/${courseId}/tests`);
+            setTests(testsRes.data.data);
+          } catch (testsErr) {
+            console.error("Tests fetch failed:", testsErr.response?.status, testsErr.response?.data);
+          }
+        }
       } catch (err) {
         setError('Could not load this course.');
       } finally {
@@ -49,6 +61,11 @@ const CourseDetails = () => {
         (c) => c.courseId === Number(courseId)
       );
       setEnrollment(matched || null);
+
+      if (matched) {
+        const testsRes = await api.get(`/student/courses/${courseId}/tests`);
+        setTests(testsRes.data.data);
+      }
     } catch (err) {
       setError('Could not enroll. Please try again.');
     } finally {
@@ -120,9 +137,38 @@ const CourseDetails = () => {
 
         <div className="lg:col-span-2 space-y-6">
           <h2 className="text-xl font-bold text-gray-800 border-b-2 border-blue-600 pb-2">Available Tests</h2>
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center text-gray-400 text-sm">
-            Tests for this course haven't been added yet. Check back soon.
-          </div>
+
+          {!enrollment ? (
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center text-gray-400 text-sm">
+              Enroll in this course to see its tests.
+            </div>
+          ) : tests.length === 0 ? (
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center text-gray-400 text-sm">
+              Tests for this course haven't been added yet. Check back soon.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {tests.map((test) => (
+                <div
+                  key={test.testId}
+                  className="bg-white p-5 rounded-lg shadow-sm border border-gray-200 flex items-center justify-between"
+                >
+                  <div>
+                    <h3 className="font-bold text-gray-900">{test.testName}</h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {test.noOfQuestions} Questions &middot; {test.totalScore} Marks &middot; {test.timeAlloted} Minutes
+                    </p>
+                  </div>
+                  <Link
+                    to={`/student/test/${test.testId}`}
+                    className="px-5 py-2 bg-[#1e3a5f] text-white text-sm font-semibold rounded-md hover:bg-blue-800 transition-colors"
+                  >
+                    Start Test
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">

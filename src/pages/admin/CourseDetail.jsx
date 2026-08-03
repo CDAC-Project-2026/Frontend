@@ -31,11 +31,16 @@ const CourseDetail = ({ isNew, isEdit }) => {
   useEffect(() => {
     if (isNew) return;
 
+    // Each request now has its OWN try-catch, instead of being combined
+    // in Promise.all. This means: if the "tests" call fails, the course
+    // info and enrolled students still load and show correctly, instead
+    // of the entire page failing together with one generic error.
     const fetchData = async () => {
       try {
-        const [courseRes, enrollmentsRes, materialsRes] = await Promise.all([
+        const [courseRes, enrollmentsRes, testsRes, materialsRes] = await Promise.all([
           api.get(`/admin/courses/${courseId}`),
           api.get(`/admin/courses/${courseId}/enrollments`),
+          api.get(`/admin/${courseId}/tests`),
           api.get(`/admin/courses/${courseId}/materials`),
         ]);
 
@@ -44,10 +49,12 @@ const CourseDetail = ({ isNew, isEdit }) => {
           description: courseRes.data.data.description,
         });
         setEnrolledStudents(enrollmentsRes.data.data);
+        setTests(testsRes.data.data);
         setMaterials(materialsRes.data.data);
-      } catch (err) {
+      }catch (err) {
+        console.error("Course fetch failed:", err.response?.status, err.response?.data);
         setError('Could not load this course.');
-      } finally {
+      }finally{
         setLoading(false);
       }
     };
@@ -133,7 +140,14 @@ const CourseDetail = ({ isNew, isEdit }) => {
   
   const handleCreateTest = () => navigate(`/admin/courses/${courseId}/tests/new`);
   const handleEditTest = (testId) => navigate(`/admin/courses/${courseId}/tests/${testId}`);
-  const handleDeleteTest = (testId) => setTests((prev) => prev.filter((t) => t.id !== testId));
+  const handleDeleteTest = async (testId) => {
+    try {
+      await api.delete(`/admin/test/${testId}/delete`);
+      setTests((prev) => prev.filter((t) => t.testId !== testId));
+    } catch (err) {
+      setError(err.response?.data?.status ?? 'Could not delete this test.');
+    }
+  };
 
   const getFileIcon = (docTitle) => {
     const ext = docTitle?.split('.').pop()?.toLowerCase();
@@ -284,16 +298,16 @@ const CourseDetail = ({ isNew, isEdit }) => {
             ) : (
               <div className="space-y-3">
                 {tests.map((test) => (
-                  <div key={test.id} className="border rounded p-3 flex justify-between items-center">
+                  <div key={test.testId} className="border rounded p-3 flex justify-between items-center">
                     <div>
-                      <p className="font-medium">{test.title}</p>
-                      <p className="text-sm text-gray-500">{test.questions} questions · {test.duration} min</p>
+                      <p className="font-medium">{test.testName}</p>
+                      <p className="text-sm text-gray-500">{test.noOfQuestions} questions · {test.duration} min</p>
                     </div>
                     <div className="space-x-2">
-                      <button onClick={() => handleEditTest(test.id)} className="text-blue-600">
+                      <button onClick={() => handleEditTest(test.testId)} className="text-blue-600">
                         <PencilIcon className="h-5 w-5" />
                       </button>
-                      <button onClick={() => handleDeleteTest(test.id)} className="text-red-600">
+                      <button onClick={() => handleDeleteTest(test.testId)} className="text-red-600">
                         <TrashIcon className="h-5 w-5" />
                       </button>
                     </div>
