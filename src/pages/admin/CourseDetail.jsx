@@ -9,7 +9,8 @@ import {
   PencilIcon,
   AcademicCapIcon,
   UserGroupIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 import api from '../../services/api';
 
@@ -19,11 +20,12 @@ const CourseDetail = ({ isNew, isEdit }) => {
 
   const [formData, setFormData] = useState({ courseName: '', description: '' });
   const [enrolledStudents, setEnrolledStudents] = useState([]);
-  const [materials, setMaterials] = useState([]); //backend left
-  const [tests, setTests] = useState([]); //backend left 
+  const [materials, setMaterials] = useState([]);
+  const [tests, setTests] = useState([]); 
 
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -35,32 +37,26 @@ const CourseDetail = ({ isNew, isEdit }) => {
     // of the entire page failing together with one generic error.
     const fetchData = async () => {
       try {
-        const courseRes = await api.get(`/admin/courses/${courseId}`);
+        const [courseRes, enrollmentsRes, testsRes, materialsRes] = await Promise.all([
+          api.get(`/admin/courses/${courseId}`),
+          api.get(`/admin/courses/${courseId}/enrollments`),
+          api.get(`/admin/${courseId}/tests`),
+          api.get(`/admin/courses/${courseId}/materials`),
+        ]);
+
         setFormData({
           courseName: courseRes.data.data.courseName,
           description: courseRes.data.data.description,
         });
-      } catch (err) {
+        setEnrolledStudents(enrollmentsRes.data.data);
+        setTests(testsRes.data.data);
+        setMaterials(materialsRes.data.data);
+      }catch (err) {
         console.error("Course fetch failed:", err.response?.status, err.response?.data);
         setError('Could not load this course.');
+      }finally{
+        setLoading(false);
       }
-
-      try {
-        const enrollmentsRes = await api.get(`/admin/courses/${courseId}/enrollments`);
-        setEnrolledStudents(enrollmentsRes.data.data);
-      } catch (err) {
-        console.error("Enrollments fetch failed:", err.response?.status, err.response?.data);
-      }
-
-      try {
-        // Verified real endpoint from TestController.java
-        const testsRes = await api.get(`/admin/${courseId}/tests`);
-        setTests(testsRes.data.data);
-      } catch (err) {
-        console.error("Tests fetch failed:", err.response?.status, err.response?.data);
-      }
-
-      setLoading(false);
     };
 
     fetchData();
@@ -87,34 +83,61 @@ const CourseDetail = ({ isNew, isEdit }) => {
       setSaving(false);
     }
   };
-
-  // Study Material — local-only for now, no backend endpoint yet
   const handleFileUpload = (type) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = type === 'pdf' ? '.pdf' : '.ppt,.pptx';
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = e.target.files[0];
-      if (file) {
-        setMaterials((prev) => [
-          ...prev,
-          {
-            id: Date.now(),
-            name: file.name,
-            type: file.name.split('.').pop(),
-            size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
-          },
-        ]);
+      if (!file) return;
+
+      setUploading(true);
+      setError('');
+
+      const formPayload = new FormData();
+      formPayload.append('file', file);
+      formPayload.append('title', file.name);
+
+      try {
+        const response = await api.post(
+          `/admin/courses/${courseId}/materials`,
+          formPayload
+        );
+        setMaterials((prev) => [...prev, response.data.data]);
+      } catch (err) {
+        setError('Could not upload this file. Please try again.');
+      } finally {
+        setUploading(false);
       }
     };
     input.click();
   };
 
-  const handleDeleteMaterial = (materialId) => {
-    setMaterials((prev) => prev.filter((m) => m.id !== materialId));
+  const handleDeleteMaterial = async (materialId) => {
+    try {
+      await api.delete(`/admin/courses/${courseId}/materials/${materialId}`);
+      setMaterials((prev) => prev.filter((m) => m.docId !== materialId));
+    } catch (err) {
+      setError('Could not delete this material. Please try again.');
+    }
   };
 
-  //siddhi
+  const handleDownload = async (docUrl, docTitle) => {
+    try {
+      const response = await api.get(docUrl, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', docTitle);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Could not download this file.');
+    }
+  };
+  
   const handleCreateTest = () => navigate(`/admin/courses/${courseId}/tests/new`);
   const handleEditTest = (testId) => navigate(`/admin/courses/${courseId}/tests/${testId}`);
   const handleDeleteTest = async (testId) => {
@@ -126,8 +149,9 @@ const CourseDetail = ({ isNew, isEdit }) => {
     }
   };
 
-  const getFileIcon = (type) => {
-    if (type === 'pdf') return <DocumentIcon className="h-5 w-5 text-red-500" />;
+  const getFileIcon = (docTitle) => {
+    const ext = docTitle?.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') return <DocumentIcon className="h-5 w-5 text-red-500" />;
     return <PresentationChartBarIcon className="h-5 w-5 text-orange-500" />;
   };
 
@@ -200,25 +224,26 @@ const CourseDetail = ({ isNew, isEdit }) => {
         )}
       </section>
 
-      {/* Everything below only makes sense once the course actually exists */}
       {!isNew && (
         <>
           {/* Section 2: Study Material */}
           <section className="bg-white rounded-lg shadow p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Study Material</h2>
-              <span className="text-xs text-gray-400 italic">Not saved yet — backend coming soon</span>
+              {uploading && <span className="text-xs text-gray-400 italic">Uploading...</span>}
             </div>
             <div className="flex space-x-3 mb-4">
               <button
                 onClick={() => handleFileUpload('pdf')}
-                className="bg-green-600 text-white px-3 py-1 rounded-md flex items-center gap-1 hover:bg-green-700"
+                disabled={uploading}
+                className="bg-green-600 text-white px-3 py-1 rounded-md flex items-center gap-1 hover:bg-green-700 disabled:opacity-50"
               >
                 <DocumentIcon className="h-4 w-4" /> Upload PDF
               </button>
               <button
                 onClick={() => handleFileUpload('ppt')}
-                className="bg-orange-600 text-white px-3 py-1 rounded-md flex items-center gap-1 hover:bg-orange-700"
+                disabled={uploading}
+                className="bg-orange-600 text-white px-3 py-1 rounded-md flex items-center gap-1 hover:bg-orange-700 disabled:opacity-50"
               >
                 <PresentationChartBarIcon className="h-4 w-4" /> Upload PPT
               </button>
@@ -228,15 +253,29 @@ const CourseDetail = ({ isNew, isEdit }) => {
             ) : (
               <ul className="divide-y">
                 {materials.map((material) => (
-                  <li key={material.id} className="py-2 flex justify-between items-center">
+                  <li key={material.docId} className="py-2 flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      {getFileIcon(material.type)}
-                      <span className="text-gray-700">{material.name}</span>
-                      <span className="text-xs text-gray-400">{material.size}</span>
+                      {getFileIcon(material.docTitle)}
+                      <button
+                        onClick={() => handleDownload(material.docUrl, material.docTitle)}
+                        className="text-gray-700 hover:text-blue-600 hover:underline text-left"
+                      >
+                        {material.docTitle}
+                      </button>
+                      <span className="text-xs text-gray-400">{Number(material.docSize)} MB</span>
                     </div>
-                    <button onClick={() => handleDeleteMaterial(material.id)} className="text-red-600">
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handleDownload(material.docUrl, material.docTitle)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="Download"
+                      >
+                        <ArrowDownTrayIcon className="h-5 w-5" />
+                      </button>
+                      <button onClick={() => handleDeleteMaterial(material.docId)} className="text-red-600">
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </div>
                   </li>
                 ))}
               </ul>

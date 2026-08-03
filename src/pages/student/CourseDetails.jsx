@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftIcon, DocumentIcon, ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import api from "../../services/api";
 
 const CourseDetails = () => {
@@ -12,16 +12,20 @@ const CourseDetails = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [enrolling, setEnrolling] = useState(false);
+  const [materials, setMaterials] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [courseRes, myCoursesRes] = await Promise.all([
+        const [courseRes, myCoursesRes, materialsRes] = await Promise.all([
           api.get(`/student/courses/${courseId}`),
           api.get('/student/my-courses'),
+          api.get(`/student/courses/${courseId}/materials`),
         ]);
 
         setCourse(courseRes.data.data);
+        setMaterials(materialsRes.data.data);
+
 
         const matched = myCoursesRes.data.data.find(
           (c) => c.courseId === Number(courseId)
@@ -66,6 +70,22 @@ const CourseDetails = () => {
       setError('Could not enroll. Please try again.');
     } finally {
       setEnrolling(false);
+    }
+  };
+
+  const handleDownload = async (docUrl, docTitle) => {
+    try {
+      const response = await api.get(docUrl, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', docTitle);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Could not download this file.');
     }
   };
 
@@ -153,8 +173,32 @@ const CourseDetails = () => {
 
         <div className="space-y-6">
           <h2 className="text-xl font-bold text-gray-800 border-b-2 border-blue-600 pb-2">Study Materials</h2>
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 text-center text-gray-400 text-sm">
-            No materials uploaded yet.
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            {materials.length === 0 ? (
+              <p className="p-4 text-gray-400 text-sm text-center">No materials uploaded yet.</p>
+            ) : (
+              materials.map((doc, index) => (
+                <div
+                  key={doc.docId}
+                  className={`p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors ${index !== materials.length - 1 ? 'border-b border-gray-100' : ''}`}
+                >
+                  <div className="bg-red-100 p-2 rounded text-red-600 flex-shrink-0">
+                    <DocumentIcon className="w-6 h-6" />
+                  </div>
+                  <div className="flex-grow min-w-0">
+                    <h4 className="text-sm font-bold text-gray-800 truncate">{doc.docTitle}</h4>
+                    <p className="text-xs text-gray-500 mt-0.5">{Number(doc.docSize)} MB</p>
+                  </div>
+                  <button
+                    onClick={() => handleDownload(doc.docUrl, doc.docTitle)}
+                    className="text-blue-600 hover:text-blue-800 p-1"
+                    title="Download"
+                  >
+                    <ArrowDownTrayIcon className="w-5 h-5" />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
